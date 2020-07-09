@@ -1,0 +1,29 @@
+c:\Python27\ArcGIS10.7>python.exe c:\Users\esali\Downloads\get-pip.py
+DEPRECATION: Python 2.7 reached the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 is no longer maintained. pip 21.0 will drop support for Python 2.7 in January 2021. More details about Python 2 support in pip, can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support
+Collecting pip
+  Using cached pip-20.1.1-py2.py3-none-any.whl (1.5 MB)
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 18.1
+    Uninstalling pip-18.1:
+      Successfully uninstalled pip-18.1
+  WARNING: The scripts pip.exe, pip2.7.exe and pip2.exe are installed in 'c:\Python27\ArcGIS10.7\Scripts' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+Successfully installed pip-20.1.1
+
+c:\Python27\ArcGIS10.7>cd Scripts
+
+c:\Python27\ArcGIS10.7\Scripts>pip install patool pyunpack
+DEPRECATION: Python 2.7 reached the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 is no longer maintained. pip 21.0 will drop support for Python 2.7 in January 2021. More details about Python 2 support in pip, can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support
+Collecting patool
+  Using cached patool-1.12-py2.py3-none-any.whl (77 kB)
+Collecting pyunpack
+  Using cached pyunpack-0.2.1-py2.py3-none-any.whl (3.7 kB)
+Collecting easyprocess
+  Using cached EasyProcess-0.3-py2.py3-none-any.whl (7.9 kB)
+Collecting entrypoint2
+  Using cached entrypoint2-0.2.1-py2.py3-none-any.whl (8.7 kB)
+Collecting argparse
+  Using cached argparse-1.4.0-py2.py3-none-any.whl (23 kB)
+Installing collected packages: patool, easyprocess, argparse, entrypoint2, pyunpack
+Successfully installed argparse-1.4.0 easyprocess-0.3 entrypoint2-0.2.1 patool-1.12 pyunpack-0.2.1
