@@ -2,6 +2,9 @@
 import arcpy, os, time
 from datetime import datetime
 
+# Importante: Todos los archivos deben descomprimirse antes de utilizar el script.
+# Importante: Las tres carpetas descomprimidas tienen que estar en el mismo directorio.
+
 path = u"C:\\SyK\\07_CARTOBASE\\data"
 path_newsGDB = u"C:\\SyK\\07_CARTOBASE\\data"
 
