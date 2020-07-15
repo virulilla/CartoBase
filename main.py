@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 import arcpy, os
-# TODO: permitir que reconozca las 'n'
 
 path = u"C:\\SyK\\07_CARTOBASE\\data"
 path_newsGDBs = u"C:\\SyK\\07_CARTOBASE\\data"
 
 countryDic = {
-    "e": "HERE 2020Q2 Espana",
+    "e": u"HERE 2020Q2 España",
     "p": "Portugal",
     "f": "F0CN201E1EF0000AACMN"
 }
@@ -31,13 +30,18 @@ query = "FEAT_COD =2000408 OR FEAT_COD =2000124 OR FEAT_COD =2000403 OR FEAT_COD
         "FEAT_COD =2000200 OR FEAT_COD =1900403 OR FEAT_COD =900103 OR FEAT_COD =900150 OR FEAT_COD =900130 OR " \
         "FEAT_COD =2000460 OR FEAT_COD = 2000123 OR FEAT_COD = 1907403"
 
-srWGS84 = arcpy.SpatialReference(4326)
+rsWGS84 = arcpy.SpatialReference(3857)
+
+
+# Eliminacion de MapaBase.gdb
+if arcpy.Exists(os.path.join(path_newsGDBs, "MapaBase.gdb")):
+    arcpy.Delete_management(os.path.join(path_newsGDBs, "MapaBase.gdb"))
 
 # Renombrado de archivos NamedPlc.shp
 for root, dirs, files in os.walk(path, topdown=True):
     for name in files:
         if name == "NamedPlc.shp" or name == "WaterPoly.shp" or name == "WaterSeg.shp" or name == "Oceans.shp" or name == "LandUseA.shp" or name == "LandUseB.shp":
-            if root.find("HERE 2020Q2 Espana") >= 0:
+            if root.find("HERE 2020Q2 España") >= 0:
                 m = "_e"
             elif root.find("Portugal") >= 0:
                 m = "_p"
@@ -48,10 +52,10 @@ for root, dirs, files in os.walk(path, topdown=True):
             if name != newName:
                 arcpy.Rename_management(os.path.join(root, name), newName)
 
-# Creacion de las nuevas gdbs
+# Creacion de las gdbs auxiliares
 for root, dirs, files in os.walk(path, topdown=True):
     for dir in dirs:
-        if dir == "HERE 2020Q2 Espana":
+        if dir == u"HERE 2020Q2 España":
             m = "_e"
         elif dir == "Portugal":
             m = "_p"
@@ -109,7 +113,6 @@ for gdb in os.listdir(path_newsGDBs):
         arcpy.DeleteRows_management(arcpy.SelectLayerByAttribute_management(selection, "SWITCH_SELECTION"))
         arcpy.Delete_management("NamedPlcLyr")
         arcpy.Delete_management(selection)
-
 
 # Creacion y calculo de campos
 for gdb in os.listdir(path_newsGDBs):
@@ -204,14 +207,6 @@ for gdb in os.listdir(path_newsGDBs):
         arcpy.Rename_management("WaterPoly2", "WaterPoly")
         arcpy.Delete_management("Oceans")
 
-# Se proyectan las fc a WGS 1984 Web Mercator (auxiliary sphere)
-for gdb in os.listdir(path_newsGDBs):
-    if os.path.splitext(gdb)[1] == ".gdb":
-        arcpy.env.workspace = gdb
-        for fc in arcpy.ListFeatureClasses():
-            if arcpy.Describe(fc).spatialReference != srWGS84:
-                arcpy.Project_management(fc, fc + "_proj", srWGS84)
-
 # Se crea MapaBase.gdb
 if arcpy.Exists(os.path.join(path_newsGDBs, "MapaBase.gdb")):
     arcpy.Delete_management(os.path.join(path_newsGDBs, "MapaBase.gdb"))
@@ -225,10 +220,9 @@ toMerge_WaterPoly = []
 toMerge_WaterSeg = []
 toMerge_LandUse = []
 
-# TODO: comprobar si hay que hacer el merge del project
 for gdb in os.listdir(path_newsGDBs):
     if os.path.splitext(gdb)[1] == ".gdb" and os.path.splitext(gdb)[0] != "MapaBase":
-        arcpy.env.workspace = gdb
+        arcpy.env.workspace = os.path.join(path_newsGDBs, gdb)
         for fc in arcpy.ListFeatureClasses():
             if fc.find("NamedPlc") >= 0:
                 toMerge_NamedPlc.append(os.path.join(path_newsGDBs, gdb, fc))
@@ -239,7 +233,21 @@ for gdb in os.listdir(path_newsGDBs):
             if fc.find("LandUse") >= 0:
                 toMerge_LandUse.append(os.path.join(path_newsGDBs, gdb, fc))
 
+arcpy.env.workspace = os.path.join(path_newsGDBs, "MapaBase.gdb")
 arcpy.Merge_management(toMerge_NamedPlc, "esp_sm")
 arcpy.Merge_management(toMerge_WaterPoly, "esp_wa")
 arcpy.Merge_management(toMerge_WaterSeg, "esp_wl")
 arcpy.Merge_management(toMerge_LandUse, "esp_lu")
+
+# Se proyectan las fc a WGS 1984 Web Mercator (auxiliary sphere)
+arcpy.env.workspace = os.path.join(path_newsGDBs, "MapaBase.gdb")
+for fc in arcpy.ListFeatureClasses():
+    if arcpy.Describe(fc).spatialReference != rsWGS84:
+        arcpy.Project_management(fc, fc + "_proj", rsWGS84)
+        arcpy.Delete_management(fc)
+        arcpy.Rename_management(fc + "_proj", fc)
+
+# Se eliminan las gdbs auxiliares
+for gdb in os.listdir(path_newsGDBs):
+    if os.path.splitext(gdb)[1] == ".gdb" and os.path.splitext(gdb)[0] != "MapaBase":
+        arcpy.Delete_management(os.path.join(path_newsGDBs, gdb))
