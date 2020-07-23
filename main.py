@@ -30,7 +30,7 @@ query = "FEAT_COD =2000408 OR FEAT_COD =2000124 OR FEAT_COD =2000403 OR FEAT_COD
 
 rsWGS84 = arcpy.SpatialReference(3857)
 
-#Backup de MapaBase.gdb anterior
+# Backup de MapaBase.gdb anterior
 if arcpy.Exists(os.path.join(path_newsGDB, "MapaBase.gdb")):
     hoy = time.strftime("%Y%m%d_%H%M%S")
     out_data = os.path.join(path, "MapaBase" + "_" + hoy + ".gdb")
@@ -39,8 +39,8 @@ if arcpy.Exists(os.path.join(path_newsGDB, "MapaBase.gdb")):
 # Renombrado de archivos NamedPlc.shp
 for root, dirs, files in os.walk(path, topdown=True):
     for name in files:
-        if name == "NamedPlc.shp" or name == "WaterPoly.shp" or name == "WaterSeg.shp" or name == "Oceans.shp" or name == "LandUseA.shp" or name == "LandUseB.shp":
-            if root.find("HERE 2020Q2 España") >= 0:
+        if name == "NamedPlc.shp" or name == "WaterPoly.shp" or name == "WaterSeg.shp" or name == "Oceans.shp" or name == "LandUseA.shp" or name == "LandUseB.shp" or name == "AltStreets.shp":
+            if root.find(u"HERE 2020Q2 España") >= 0:
                 m = "_e"
             elif root.find("Portugal") >= 0:
                 m = "_p"
@@ -61,6 +61,7 @@ shpToMerge_WaterSeg = []
 shpToMerge_Oceans = []
 shpToMerge_LandUseA = []
 shpToMerge_LandUseB = []
+shpToMerge_AltStreets = []
 for root, dirs, files in os.walk(path, topdown=True):
     for name in files:
         if name.find("NamedPlc") >= 0 and os.path.splitext(name)[1] == ".shp":
@@ -75,6 +76,8 @@ for root, dirs, files in os.walk(path, topdown=True):
             shpToMerge_LandUseA.append(os.path.join(root, name))
         if name.find("LandUseB") >= 0 and os.path.splitext(name)[1] == ".shp":
             shpToMerge_LandUseB.append(os.path.join(root, name))
+        if name.find("AltStreets") >= 0 and os.path.splitext(name)[1] == ".shp":
+            shpToMerge_AltStreets.append(os.path.join(root, name))
 
 arcpy.env.workspace = os.path.join(path_newsGDB, "MapaBase.gdb")
 
@@ -87,6 +90,7 @@ arcpy.Merge_management(shpToMerge_LandUseB, "esp_lu2")
 arcpy.Merge_management(["esp_lu1", "esp_lu2"], "esp_lu")
 arcpy.Delete_management("esp_lu1")
 arcpy.Delete_management("esp_lu2")
+arcpy.Merge_management(shpToMerge_AltStreets, "AltStreets")
 
 
 # Eliminacion poblaciones repetidas en esp_sm
@@ -101,7 +105,6 @@ arcpy.DeleteRows_management(arcpy.SelectLayerByAttribute_management(selection, "
 arcpy.Delete_management("esp_luLyr")
 arcpy.Delete_management(selection)
 
-# Creacion y calculo de campos
 # Nuevos campos en esp_sm
 arcpy.AddField_management("esp_sm", "ADMINCLASS", "Short")
 arcpy.AddField_management("esp_sm", "NAME", "Text", 100)
@@ -118,6 +121,42 @@ arcpy.AddField_management("Oceans", "TYP", "Short")
 arcpy.AddField_management("esp_lu", "NAME", "Text", 150)
 arcpy.AddField_management("esp_lu", "FEATTYP", "Short")
 arcpy.AddField_management("esp_lu", "ACRON", "Text", 20)
+
+
+# Se crean y rellenan esp_00, esp02, esp_03, esp06, esp_07 (Streets)
+
+for root, dirs, files in os.walk(path, topdown=True):
+    for name in files:
+        if name == "Streets.shp":
+            pathTemplate = os.path.join(root, name)
+            break
+
+rsShp = arcpy.Describe(pathTemplate).spatialReference
+
+arcpy.CreateFeatureclass_management(arcpy.env.workspace, "esp_00", "POLYLINE", template= pathTemplate, spatial_reference = rsShp)
+arcpy.CreateFeatureclass_management(arcpy.env.workspace, "esp_02", "POLYLINE", template= pathTemplate, spatial_reference = rsShp)
+arcpy.CreateFeatureclass_management(arcpy.env.workspace, "esp_03", "POLYLINE", template= pathTemplate, spatial_reference = rsShp)
+arcpy.CreateFeatureclass_management(arcpy.env.workspace, "esp_06", "POLYLINE", template= pathTemplate, spatial_reference = rsShp)
+arcpy.CreateFeatureclass_management(arcpy.env.workspace, "esp_07", "POLYLINE", template= pathTemplate, spatial_reference = rsShp)
+
+for root, dirs, files in os.walk(path, topdown=True):
+    for name in files:
+        if name == "Streets.shp":
+            arcpy.MakeFeatureLayer_management(os.path.join(root, name), "selectionLyr", where_clause = "FUNC_CLASS ='1' AND FERRY_TYPE <> 'B'")
+            arcpy.Append_management("selectionLyr", "esp_00", schema_type = "TEST")
+            arcpy.Delete_management("selectionLyr")
+            arcpy.MakeFeatureLayer_management(os.path.join(root, name), "selectionLyr", where_clause = "FUNC_CLASS ='2' AND FERRY_TYPE <> 'B'")
+            arcpy.Append_management("selectionLyr", "esp_02", schema_type = "TEST")
+            arcpy.Delete_management("selectionLyr")
+            arcpy.MakeFeatureLayer_management(os.path.join(root, name), "selectionLyr", where_clause = "FUNC_CLASS ='3' AND FERRY_TYPE <> 'B'")
+            arcpy.Append_management("selectionLyr", "esp_03", schema_type = "TEST")
+            arcpy.Delete_management("selectionLyr")
+            arcpy.MakeFeatureLayer_management(os.path.join(root, name), "selectionLyr", where_clause = "FUNC_CLASS ='4' AND FERRY_TYPE <> 'B'")
+            arcpy.Append_management("selectionLyr", "esp_06", schema_type = "TEST")
+            arcpy.Delete_management("selectionLyr")
+            arcpy.MakeFeatureLayer_management(os.path.join(root, name), "selectionLyr", where_clause = "FUNC_CLASS ='5' AND FERRY_TYPE <> 'B'")
+            arcpy.Append_management("selectionLyr", "esp_07", schema_type = "TEST")
+            arcpy.Delete_management("selectionLyr")
 
 # Se calculan los campos ADMINCLASS, NAME y DISPCLASS en NamedPlc
 with arcpy.da.UpdateCursor("esp_sm", ["POI_NAME", "CAPITAL", "POPULATION", "ADMINCLASS", "NAME", "DISPCLASS"]) as cursorNamedPlc:
@@ -182,10 +221,61 @@ with arcpy.da.UpdateCursor("esp_lu", ["POLYGON_NM", "FEAT_COD", "FEATTYP", "NAME
         row[4] = ""
         cursorLandUse.updateRow(row)
 
+# Se calculan NAME, SHIELDNUM en esp_00 (FC = 1), esp_02 (FC = 2) y esp_03 (FC = 3)
+#   Se crean los campos NAME, SHIELDNUM, ST_NAME_1 y ROUTE_TYPE_1
+#   Se hace un join entre cada una de estas capas con AltStreets
+arcpy.MakeFeatureLayer_management("AltStreets", "AltStreetsLyr")
+for fc in ["esp_00", "esp_02", "esp_03"]:
+    arcpy.AddField_management(fc, "NAME", "Text", 100)
+    arcpy.AddField_management(fc, "SHIELDNUM", "Text", 100)
+    arcpy.AddField_management(fc, "ST_NAME_1", "Text", 240)
+    arcpy.AddField_management(fc, "ROUTE_TYPE_1", "Text", 1)
+    arcpy.MakeFeatureLayer_management(fc, "fcLyr")
+    arcpy.AddJoin_management("fcLyr", "LINK_ID", "AltStreetsLyr", "LINK_ID", "KEEP_COMMON")
+    arcpy.CalculateField_management("fcLyr", "ST_NAME_1", "!AltStreets.ST_NAME!", "PYTHON")
+    arcpy.CalculateField_management("fcLyr", "ROUTE_TYPE_1", "!AltStreets.ROUTE_TYPE!", "PYTHON")
+    arcpy.RemoveJoin_management("fcLyr")
+    arcpy.Delete_management("fcLyr")
+    with arcpy.da.UpdateCursor(fc, ["NAME", "SHIELDNUM", "ST_NAME", "ROUTE_TYPE", "ST_NAME_1", "ROUTE_TYPE_1", "EXITNAME", "JUNCTIONNM"]) as cursorStreet1:
+        for row in cursorStreet1:
+            if row[3] != " " and (row[5] != " " or row[5] is None):
+                row[0] = row[2]
+                row[1] = row[2]
+            elif row[3] != " " and row[5] == " ":
+                row[0] = row[4].title()
+                row[1] = row[2]
+            elif row[3] == " " and row[5] != " ":
+                row[0] = row[2].title()
+                row[1] = row[4]
+            elif row[3] == " " and (row[5] == " " or row[5] is None):
+                row[0] = row[2].title()
+                row[1] = row[2].title()
+            if row[6] == "Y" or row[0] is None or row[7] == "Y":
+                row[0] = ""
+                row[1] = ""
+            cursorStreet1.updateRow(row)
+
+arcpy.Delete_management("AltStreetsLyr")
+
+#   Se calculan NAME, SHIELDNUM en esp_06 (FC = 4) y esp_07 (FC = 5)
+for fc in ["esp_06", "esp_07"]:
+    arcpy.AddField_management(fc, "NAME", "Text", 100)
+    arcpy.AddField_management(fc, "SHIELDNUM", "Text", 100)
+    with arcpy.da.UpdateCursor(fc, ["NAME", "SHIELDNUM", "ST_NAME", "ROUTE_TYPE", "EXITNAME", "JUNCTIONNM"]) as cursorStreet2:
+        for row in cursorStreet2:
+            if row[3] == " ":
+                row[0] = row[2].title()
+                row[1] = row[2].title()
+            if row[4] == "Y" or row[5] == "Y":
+                row[0] = ""
+                row[1] = ""
+            cursorStreet2.updateRow(row)
+
 # Merge Oceans y WaterPoly en esp_wa
 arcpy.Merge_management(["Oceans","WaterPoly"], "esp_wa")
 arcpy.Delete_management("Oceans")
 arcpy.Delete_management("WaterPoly")
+arcpy.Delete_management("AltStreets")
 
 # Se proyectan las fc a WGS 1984 Web Mercator (auxiliary sphere)
 for fc in arcpy.ListFeatureClasses():
